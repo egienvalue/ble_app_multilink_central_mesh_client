@@ -2,7 +2,7 @@
 
 nrfx_uart_t m_uart0 =  NRFX_UART_INSTANCE(0);
 
-static uint8_t mesh_tx_buffer[TX_BUFF_SIZE] = {0xA5, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34};
+static uint8_t mesh_tx_buffer[TX_BUFF_SIZE] = {0xA5, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00};
 
 void uart_init(void)
 {
@@ -45,7 +45,8 @@ ret_code_t uart_send_packet(uint8_t *p_Mac_addr, uint8_t battery_level, uint8_t 
     int i;
     for(i=0;i<4;i++)
     {
-        mesh_tx_buffer[3+i] = p_Mac_addr[3-i];
+        //mesh_tx_buffer[3+i] = p_Mac_addr[3-i];
+        mesh_tx_buffer[6-i] = p_Mac_addr[i];
     }
     mesh_tx_buffer[7] = battery_level;
     mesh_tx_buffer[8] = occupancy;
