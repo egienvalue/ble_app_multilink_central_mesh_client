@@ -3,7 +3,7 @@ TARGETS          := nrf52832_xxaa
 OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := ../../../../nRF5_SDK_15.0.0_a53641a
-MESH_SDK_ROOT := ../../../../nRF5-SDK-for-Mesh-master
+MESH_SDK_ROOT := ../../../../nrf5_SDK_for_Mesh_v2.2.0_src
 PROJ_DIR := ../../..
 
 $(OUTPUT_DIRECTORY)/nrf52832_xxaa.out: \
@@ -165,6 +165,7 @@ SRC_FILES += \
   $(PROJ_DIR)/app_api_for_model/src/rtt_input.c \
   $(PROJ_DIR)/customized_model/src/generic_onoff_client.c \
   $(PROJ_DIR)/customized_model/src/generic_onoff_server.c \
+  $(PROJ_DIR)/src/mesh2pi_uart.c \
   $(PROJ_DIR)/mesh_main.c \
   $(PROJ_DIR)/main.c \
 
@@ -321,6 +322,7 @@ INC_FOLDERS += \
   $(MESH_SDK_ROOT)/external/micro-ecc \
   $(PROJ_DIR)/app_api_for_model/include \
   $(PROJ_DIR)/customized_model/include \
+  $(PROJ_DIR)/include \
 
 
 # Libraries common to all targets

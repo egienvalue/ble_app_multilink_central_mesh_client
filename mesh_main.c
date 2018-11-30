@@ -71,6 +71,8 @@
 #include "light_switch_example_common.h"
 #include "example_common.h"
 
+#include "mesh2pi_uart.h"
+
 #define APP_STATE_OFF                (0)
 #define APP_STATE_ON                 (1)
 
@@ -158,6 +160,7 @@ static void app_generic_onoff_client_status_cb(const generic_onoff_client_t * p_
         //       p_meta->src.value, p_in->present_on_off, p_in->target_on_off, p_in->remaining_time_ms, p_in->sensor_addr);
         __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Report from Mesh node 0x%04x: {Sensor Node: 0x%08x, Occupied: %d, Battery: %d}\n",
             p_meta->src.value, p_in->sensor_addr, p_in->present_on_off, p_in->battery_level);
+        uart_send_packet((uint8_t*)(&(p_in->sensor_addr)), p_in->battery_level, p_in->present_on_off, 0x100);
 
         /*
             Using serial port transmit sensor node status to Raspberri Pi
