@@ -72,6 +72,8 @@
 #include "nrf_sortlist.h"
 #include "nrfx_rtc.h"
 #include "nrf_drv_rtc.h"
+#include "nrfx_uart.h"
+#include "nrf_drv_uart.h"
 #include "mesh_main.h"
 #include "mesh_app_utils.h"
 
@@ -96,7 +98,7 @@
 #define MAX_CONNECTION_INTERVAL   MSEC_TO_UNITS(30, UNIT_1_25_MS)       /**< Determines maximum connection interval in milliseconds. */
 #define SLAVE_LATENCY             0                                     /**< Determines slave latency in terms of connection events. */
 #define SUPERVISION_TIMEOUT       MSEC_TO_UNITS(4000, UNIT_10_MS)       /**< Determines supervision time-out in units of 10 milliseconds. */
-#define CHECK_NODE_INTERVAL         APP_TIMER_TICKS(60000)
+#define CHECK_NODE_INTERVAL         APP_TIMER_TICKS(1000)
 #define TIME_THRES                  APP_TIMER_TICKS(300000)
 
 
@@ -105,6 +107,8 @@ BLE_LBS_C_ARRAY_DEF(m_lbs_c, NRF_SDH_BLE_CENTRAL_LINK_COUNT);           /**< LED
 BLE_DB_DISCOVERY_ARRAY_DEF(m_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT);  /**< Database discovery module instances. */
 APP_TIMER_DEF(m_check_node_timer_id);
 NRF_BLE_QWR_DEF(m_qwr);                                   /**< Check node timer. */
+
+static nrfx_uart_t m_uart0 =  NRFX_UART_INSTANCE(0);	
 
 static char const m_target_periph_name[] = "Nordic_HRM";             /**< Name of the device we try to connect to. This name is searched for in the scan report data*/
 
@@ -196,11 +200,19 @@ static void cal_time(nrf_sortlist_item_t * p_item, uint32_t time)
 static void check_node_timeout_handler(void * p_context)
 {
     UNUSED_PARAMETER(p_context);
+    static uint8_t tx_buffer[4] = {'a', 'a', 'a', 'a'};
+    ret_code_t err_code;
 
     uint32_t current_RTC_count = app_timer_cnt_get();
 
-    //NRF_LOG_INFO("current RTC count: %d",current_RTC_count);
-
+    NRF_LOG_INFO("current RTC count: %d",current_RTC_count);
+    if(tx_buffer[0]=='a') {
+        tx_buffer[0] = 'b';
+    } else {
+        tx_buffer[0] = 'a';
+    }
+    err_code = nrfx_uart_tx(&m_uart0, tx_buffer, 1);
+    APP_ERROR_CHECK(err_code);
     nrf_sortlist_t const * p_list = &sensor_node_sortlist;
     
     nrf_sortlist_item_t ** pp_curr = &(p_list->p_cb->p_head);
@@ -798,6 +810,39 @@ static void gatt_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
+static void uart_evt_handler(nrfx_uart_event_t const *p_event, void *p_context)
+{
+    //NRFX_UART_EVT_TX_DONE, ///< Requested TX transfer completed.
+    //NRFX_UART_EVT_RX_DONE, ///< Requested RX transfer completed.
+    //NRFX_UART_EVT_ERROR,   ///< Error reported by UART peripheral.
+    if(p_event->type == NRFX_UART_EVT_TX_DONE){
+        NRF_LOG_INFO("uart tx done");
+
+    } else if (p_event->type == NRFX_UART_EVT_RX_DONE) {
+        NRF_LOG_INFO("uart rx done");
+
+    } else if (p_event->type == NRFX_UART_EVT_ERROR) {
+        NRF_LOG_INFO("uart error");
+    }
+
+}
+
+static void uart_init(void)
+{
+    nrfx_uart_config_t uart_config = {
+        .pseltxd= 6,         ///< TXD pin number.
+        .pselrxd= 31,           ///< RXD pin number.
+        .pselcts=8,            ///< CTS pin number.
+        .pselrts=7,            ///< RTS pin number.
+        .p_context=NULL,          ///< Context passed to interrupt handler.
+        .hwfc= NRF_UART_HWFC_DISABLED,               ///< Flow control configuration.
+        .parity= false,             ///< Parity configuration.
+        .baudrate=NRF_UART_BAUDRATE_115200,           ///< Baudrate.
+        .interrupt_priority= NRFX_UART_DEFAULT_CONFIG_IRQ_PRIORITY, ///< Interrupt priority
+    };
+    nrfx_uart_init(&m_uart0, &uart_config, uart_evt_handler);
+
+}
 
 int main(void)
 {
@@ -806,6 +851,7 @@ int main(void)
     timer_init();
     leds_init();
     qwr_init();
+    uart_init();
     buttons_init();
     power_management_init();
     ble_stack_init();
@@ -817,7 +863,7 @@ int main(void)
     //application_timers_start();
     //NRF_LOG_INFO("Multilink example started");
     mesh_main_initialize();
-    //application_timers_start();
+    application_timers_start();
     // Start execution.
     NRF_LOG_INFO("Scanning sensor node started.");
     //scan_start();
